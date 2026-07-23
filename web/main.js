@@ -1801,6 +1801,15 @@ const hidePopovers = () => {
     selectionContext = null
 }
 
+// Hide popovers when clicking outside of them
+document.addEventListener('click', event => {
+    const selectionPopover = $('#selection-popover')
+    const annotationPopover = $('#annotation-popover')
+    if (!selectionPopover.contains(event.target) && !annotationPopover.contains(event.target)) {
+        hidePopovers()
+    }
+}, true) // use capture phase to run before other handlers
+
 const placePopover = (popover, { x, y }) => {
     popover.style.left = `${x}px`
     popover.style.top = `${y}px`
