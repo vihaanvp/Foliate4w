@@ -147,8 +147,10 @@ The installer edition is designed to:
   code-override of `WEBVIEW2_USER_DATA_FOLDER` in installed mode;
 - uninstall cleanly: in addition to the Tauri NSIS template's default
   removal of `$INSTDIR`, the uninstall hook removes the
-  `%LOCALAPPDATA%\<binary-name>` tree and the per-user file-association
-  registry keys, leaving no orphaned library or settings data.
+  `%LOCALAPPDATA%\<binary-name>` tree, the managed library folder
+  (`%LOCALAPPDATA%\Foliate`, used by the **Copy Books to Library Folder**
+  feature), and the per-user file-association registry keys, leaving no
+  orphaned library or settings data.
 
 ### Portable Edition
 
@@ -165,13 +167,16 @@ The portable edition is designed to:
   application data directory;
 - show an error and stop if its directory is not writable.
 
-The planned layout is:
+The layout staged into the portable ZIP is:
 
 ```text
 Foliate-Portable/
 ├── Foliate.exe
 ├── portable.flag
+├── CHANGELOG.md
+├── Licenses/
 └── Data/
+    ├── books/
     ├── cache/
     ├── config/
     ├── covers/
@@ -180,6 +185,10 @@ Foliate-Portable/
     ├── temp/
     └── WebView2/
 ```
+
+`Data/books/` holds the managed copies made by the **Copy Books to Library
+Folder** preference; `Licenses/` and `CHANGELOG.md` carry the attribution and
+modification notices the licenses require in a binary distribution.
 
 The application can control where its own data is stored. Windows itself may
 still maintain operating-system records such as Prefetch, recent-file history,
@@ -277,22 +286,25 @@ The Windows workflow lives at
 [`.github/workflows/windows.yml`](.github/workflows/windows.yml) and uses a
 GitHub-hosted `windows-latest` runner.
 
-The completed workflow will:
+The workflow will:
 
 1. check out the source;
-2. set up Node.js and the Rust MSVC toolchain;
+2. set up Node.js and the Rust MSVC toolchain (x64 and x86 targets);
 3. restore npm and Cargo caches;
 4. install dependencies from lockfiles;
 5. build and validate the web frontend;
-6. build the Windows x64 executable without an installer bundle;
-7. create the isolated portable directory;
-8. archive the portable directory as a ZIP file;
-9. upload the package as a workflow artifact;
-10. attach it to the published GitHub Release that triggered the workflow.
+6. run `cargo check` on the Rust shell;
+7. build the portable executable and the NSIS installers (x64 and x86);
+8. stage the portable directory (`Foliate.exe`, `portable.flag`, `Licenses/`,
+   `CHANGELOG.md`, and the `Data/` skeleton including `books/`);
+9. archive the portable directory as a ZIP file;
+10. upload the portable ZIP and both installers as workflow artifacts.
 
-Pushes to `main` or `master`, pull requests, and tag pushes do not trigger
-packaging. Publish a GitHub Release (for example with tag `v0.1.3`) to start the
-Windows build and upload the portable package to that Release.
+The workflow runs on `workflow_dispatch` (the normal release path since
+v0.1.4) and when a GitHub Release is published. Pushes to `main` or `master`,
+pull requests, and tag pushes do not trigger packaging. Packages are
+downloaded from the workflow run's artifacts; attaching them to a GitHub
+Release is a manual step after a green run.
 
 ## Architecture
 
@@ -355,10 +367,13 @@ to their respective upstream projects when appropriate.
 This repository (`vihaanvp/Foliate4w`) is a modified fork of
 [`evoke322/Foliate4w`](https://github.com/evoke322/Foliate4w) (upstream tag
 `0.1.3`, commit `8a44331`). Changes layered on top of that merge base are
-documented in [`CHANGELOG.md`](CHANGELOG.md) under entry `0.1.4`
+documented in [`CHANGELOG.md`](CHANGELOG.md) under entries `0.1.4`
 (English-first localization with optional Simplified Chinese, a
 `view.close()` error-masking fix in the reader, a white-background content
-toggle, third-party license-text bundling, and release-workflow changes).
+toggle, third-party license-text bundling, NSIS installers, and
+release-workflow changes) and `0.1.5` (managed library folder with the
+**Copy Books to Library Folder** preference, a one-time migration scan for
+moved or deleted originals, and the OpenCode AI-assistance disclosure).
 The modification notice travels with the portable distribution as
 `CHANGELOG.md` at the archive root, per GPLv3 §5(a). No additional
 restrictions beyond the upstream GPLv3 terms are imposed.
